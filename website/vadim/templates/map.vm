@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Waypoints in directions</title>
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+        float: left;
+        width: 100%;
+      }
+      #legend {
+        position: absolute;
+        bottom: 10%;
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="legend">
+        <font color="red">The <b>$fullBins</b> container tour is <b>$fullLength meter</b> long.</font>
+        <input id="fullBtn" type="button" value="hide/show" />
+        <br>
+        <font color="green">The <b>$shortBins</b> container tour is <b>$shortLength meter</b> long.</font>
+        <input id="shortBtn" type="button" value="hide/show" />
+        <br><br>
+        #set ( $difference = $fullLength - $shortLength)
+        #set ( $emptyBins = $fullBins - $shortBins)
+        Not visiting the <b>$emptyBins</b> empty containers has reduced the trip by <b>$difference</b> meter.
+    </div>
+    <div id="map"></div>
+
+    <script>
+      function initMap() {
+        var directionsService = new google.maps.DirectionsService;
+        var directionsDisplayRed = new google.maps.DirectionsRenderer({
+		polylineOptions: {
+		  strokeColor: "red",
+		  strokeOpacity: 0.5
+		},
+		suppressMarkers: false,
+        suppressInfoWindows: true,
+		});
+		
+		var directionsDisplayGreen = new google.maps.DirectionsRenderer({
+		polylineOptions: {
+		  strokeColor: "green",
+		  strokeOpacity: 0.5
+		},
+		suppressMarkers: false,
+        suppressInfoWindows: true,
+		});
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 1,
+          center: {lat: 49.013432, lng: 12.101624}
+        });
+				var noPoi = [
+		{
+			featureType: "poi",
+			stylers: [
+			  { visibility: "off" }
+			]   
+		  }
+		];
+
+		map.setOptions({styles: noPoi});
+        directionsDisplayRed.setMap(map);
+		directionsDisplayGreen.setMap(map);
+
+		var fullRoute = [
+		#foreach($loc in $fullLocations)
+	    	{
+				location: "$loc",
+				stopover: true
+			},
+		#end
+		];
+
+		var shortRoute = [
+		#foreach($loc in $shortLocations)
+	    	{
+				location: "$loc",
+				stopover: true
+			},
+		#end
+		];
+        var i = 0;
+        var j = 0;
+        console.log("Full Route addresses:\n");
+        fullRoute.forEach(function(element) {
+            console.log(i + ": " + element['location']);
+            i++;
+        });
+
+        console.log("\nShort Route addresses:\n");
+        shortRoute.forEach(function(element) {
+            console.log(j + ": " + element['location']);
+            j++;
+        });
+
+        directionsService.route({
+          origin: fullRoute[0]['location'],
+          destination: fullRoute[fullRoute.length -1]['location'],
+          waypoints: fullRoute.slice(1, fullRoute.length -1),
+          optimizeWaypoints: false,
+          travelMode: 'DRIVING'
+        }, function(response, status) {
+          if (status === 'OK') {
+            directionsDisplayRed.setDirections(response);
+            var route = response.routes[0];
+          } else {
+            window.alert('Directions request failed due to ' + status);
+          }
+        });
+
+        directionsService.route({
+          origin: shortRoute[0]['location'],
+          destination: shortRoute[shortRoute.length -1]['location'],
+          waypoints: shortRoute.slice(1, shortRoute.length -1),
+          optimizeWaypoints: false,
+          travelMode: 'DRIVING'
+        }, function(response, status) {
+          if (status === 'OK') {
+            directionsDisplayGreen.setDirections(response);
+            var route = response.routes[0];
+          } else {
+            window.alert('Directions request failed due to ' + status);
+          }
+        });
+
+        google.maps.event.addDomListener(document.getElementById("fullBtn"), 'click', function(evt) {
+            if (directionsDisplayRed.getMap() != null) directionsDisplayRed.setMap(null);
+            else directionsDisplayRed.setMap(map);
+          });
+
+        google.maps.event.addDomListener(document.getElementById("shortBtn"), 'click', function(evt) {
+            if (directionsDisplayGreen.getMap() != null) directionsDisplayGreen.setMap(null);
+            else directionsDisplayGreen.setMap(map);
+          });
+      }
+
+
+
+
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDpDSC7IYliZ5ykiJ9BH00cRnBN4ouXm_8&callback=initMap">
+    </script>
+  </body>
+</html>
